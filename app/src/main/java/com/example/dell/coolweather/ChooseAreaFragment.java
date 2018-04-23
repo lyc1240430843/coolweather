@@ -2,6 +2,7 @@ package com.example.dell.coolweather;
 
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
@@ -80,6 +81,12 @@ public class ChooseAreaFragment extends Fragment {
                 }else if(currentLevel==LEVEL_CITY){
                     selectedCity = cityList.get(position);
                     queryCountry();
+                }else if(currentLevel==LEVEL_COUNTRY){
+                    String weatherId = countryList.get(position).getWeatherId();
+                    Intent intent = new Intent(getActivity(),WeatherActivity.class);
+                    intent.putExtra("weather_id",weatherId);
+                    startActivity(intent);
+                    getActivity().finish();
                 }
             }
         });
@@ -130,6 +137,7 @@ public class ChooseAreaFragment extends Fragment {
 
     private void queryCities(){
         titleText.setText(selectedProvince.getProvinceName());
+        backButton.setVisibility(View.VISIBLE);
         //TODO 这里where为何是 provinceid 此参数并不存在 调试可改为id或者后面改成getCode尝试
         cityList = DataSupport.where("provinceid = ?",String.valueOf(selectedProvince.getId())).find(City.class);
         if (cityList.size()>0){
@@ -141,7 +149,7 @@ public class ChooseAreaFragment extends Fragment {
             listView.setSelection(0);
             currentLevel = LEVEL_CITY;
         }else {
-            String address = "http://guoli/tech/api/china/"+selectedProvince.getProvinceCode();
+            String address = "http://guolin.tech/api/china/"+selectedProvince.getProvinceCode();
             queryFromServer(address,"city");
         }
     }
@@ -152,6 +160,7 @@ public class ChooseAreaFragment extends Fragment {
 
     private void queryCountry(){
         titleText.setText(selectedCity.getCityName());
+        backButton.setVisibility(View.VISIBLE);
         countryList = DataSupport.where("cityid = ?",String.valueOf(selectedCity.getId())).find(Country.class);
         if (countryList.size()>0){
             dataList.clear();
@@ -162,7 +171,7 @@ public class ChooseAreaFragment extends Fragment {
             listView.setSelection(0);
             currentLevel = LEVEL_COUNTRY;
         }else{
-            String address = "http://guolin/tech/api/china"+selectedProvince.getProvinceCode()+selectedCity.getCityCode();
+            String address = "http://guolin.tech/api/china/"+selectedProvince.getProvinceCode()+"/"+selectedCity.getCityCode();
             queryFromServer(address,"country");
         }
     }
@@ -175,23 +184,30 @@ public class ChooseAreaFragment extends Fragment {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
-                //TODO 这里写的和书上不一样，可能会错在这
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        closeProgressDialog();
-                        if ("province".equals(type)){
-                            Utility.handleProvinceResponse(responseText);
-                            queryProvinces();
-                        } else if ("city".equals(type)){
-                            Utility.handleCityResponse(responseText,selectedProvince.getId());
-                            queryCities();
-                        } else if ("country".equals(type)){
-                            Utility.handleCountryResponse(responseText,selectedCity.getId());
-                            queryCountry();
+                boolean result = false;
+                if ("province".equals(type)){
+                    result = Utility.handleProvinceResponse(responseText);
+                } else if ("city".equals(type)){
+                    result = Utility.handleCityResponse(responseText,selectedProvince.getId());
+                } else if ("country".equals(type)){
+                    result = Utility.handleCountryResponse(responseText,selectedCity.getId());
+                }
+                if (result){
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            closeProgressDialog();
+                            if ("province".equals(type)){
+                                queryProvinces();
+                            } else if ("city".equals(type)){
+                                queryCities();
+                            } else if ("country".equals(type)){
+                                queryCountry();
+                            }
                         }
-                    }
-                });
+                    });
+                }
+
 
             }
 
