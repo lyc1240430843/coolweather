@@ -8,5 +8,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="气象数据来自彩云天气"
-        android:gravity="center"/>
+        android:gravity="center"
+        android:textSize="15sp"
+        android:layout_margin="5dp"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="背景图片来自必应每日一图"
+        android:gravity="center"
+        android:textSize="12sp"/>
+    <TextView
+        android:id="@+id/bing_pic_copyright"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="8sp"/>
 </LinearLayout>

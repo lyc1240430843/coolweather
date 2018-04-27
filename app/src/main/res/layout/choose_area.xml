@@ -4,13 +4,13 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#fff">
-    <
+    android:background="#8000">
+
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary">
+        android:background="@drawable/layout_border_top">
 
         <Button
             android:id="@+id/back_button"
@@ -36,6 +36,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:textAlignment="center"
-        android:background="#fff">
+        android:background="#3000">
     </ListView>
 </LinearLayout>

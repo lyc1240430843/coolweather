@@ -1,15 +1,22 @@
 package com.example.dell.coolweather;
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.Image;
 import android.os.Build;
+import android.os.IBinder;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ScrollingView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -22,10 +29,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.dell.coolweather.gson.BingPic;
 import com.example.dell.coolweather.gson.Forecast;
 import com.example.dell.coolweather.gson.Weather;
+import com.example.dell.coolweather.service.AutoUpdateService;
 import com.example.dell.coolweather.util.HttpUtil;
 import com.example.dell.coolweather.util.Utility;
+import com.google.gson.Gson;
 
 import java.io.IOException;
 
@@ -51,19 +61,40 @@ public class WeatherActivity extends AppCompatActivity {
     private String mWeatherId;
     public DrawerLayout drawerLayout;
     private Button navButton;
+    private String bingPicUrl;
+    private TextView bingPicCopyRight;
+    public String copyRight;
+
+//    private AutoUpdateService.PicBinder picBinder;
+//    private ServiceConnection connection = new ServiceConnection() {
+//        @Override
+//        public void onServiceConnected(ComponentName name, IBinder service) {
+//            picBinder = (AutoUpdateService.PicBinder) service;
+//            bingPicCopyRight.setText(picBinder.copyRightString);
+//        }
+//
+//        @Override
+//        public void onServiceDisconnected(ComponentName name) {
+//
+//        }
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //只有5.0以上系统才支持这个功能所以做一个判断提高兼容性
         //背景和状态栏融合
-        if (Build.VERSION.SDK_INT >= 21){
-            View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            getWindow().setStatusBarColor(Color.TRANSPARENT);
-        }
+//        if (Build.VERSION.SDK_INT >= 21){
+//            View decorView = getWindow().getDecorView();
+//            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
+//            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+//            getWindow().setStatusBarColor(Color.TRANSPARENT);
+//        }
         setContentView(R.layout.activity_weather);
+
+//        Intent intent = new Intent(this,AutoUpdateService.class);
+//        bindService(intent,connection,BIND_AUTO_CREATE);
+
         weatherLayout = (ScrollView)findViewById(R.id.weather_layout);
         titleCity = (TextView)findViewById(R.id.title_city);
         titleUpdateTime = (TextView)findViewById(R.id.title_update_time);
@@ -79,6 +110,7 @@ public class WeatherActivity extends AppCompatActivity {
         swipeRefresh = (SwipeRefreshLayout)findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         drawerLayout = (DrawerLayout)findViewById(R.id.drawer_layout);
+        bingPicCopyRight = (TextView)findViewById(R.id.bing_pic_copyright);
         navButton = (Button)findViewById(R.id.nav_button);
         navButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -86,15 +118,13 @@ public class WeatherActivity extends AppCompatActivity {
                 drawerLayout.openDrawer(GravityCompat.START);
             }
         });
-        //TODO 不懂
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-
         String weatherString = prefs.getString("weather",null);
         if (weatherString != null){
             //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
             mWeatherId = weather.basic.weatherId;
-            showWeatherInfo(weather);
+            showWeatherInfo(weather);//TODO 这方法里有对ui的操作但是不在主线程为什么可以？
         }else{
             //第一次开启即无缓存时去服务器查询天气 服务器查询里也使用了解析天气数据的方法
             mWeatherId = getIntent().getStringExtra("weather_id");
@@ -130,7 +160,6 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (weather != null && "ok".equals(weather.status)){
-                            //TODO 不懂
                             SharedPreferences.Editor editor = PreferenceManager.
                                     getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather",responseText);
@@ -167,14 +196,13 @@ public class WeatherActivity extends AppCompatActivity {
     public void showWeatherInfo(Weather weather){
         //从gson已经转换过的对象里提取数据
         String cityName = weather.basic.cityName;
-        String updateTime = weather.basic.update.updateTime.split(" ")[1];
+        String updateTime = "更新时间："+weather.basic.update.updateTime.split(" ")[1];
         String degree = weather.now.temperature+"℃";
         String weatherInfo = weather.now.more.info;
         titleCity.setText(cityName);
         titleUpdateTime.setText(updateTime);
         degreeText.setText(degree);
         weatherInfoText.setText(weatherInfo);
-        //TODO
         forecastLayout.removeAllViews();
         int count = 0;
         for (Forecast forecast : weather.forecastList){
@@ -201,7 +229,7 @@ public class WeatherActivity extends AppCompatActivity {
             count++;
             infoText.setText(forecast.more.info);
             maxText.setText(forecast.temperature.max);
-            minText.setText(forecast.temperature.min);
+            minText.setText("/ "+forecast.temperature.min+"℃");
             forecastLayout.addView(view);
         }
         if (weather.aqi != null){
@@ -216,23 +244,31 @@ public class WeatherActivity extends AppCompatActivity {
             weatherLayout.setVisibility(View.VISIBLE);
             //控件visibility属性为INVISIBLE时，界面保留了view控件所占有的空间
             //而控件属性为GONE时，界面则不保留view控件所占有的空间
+
+            Intent intent = new Intent(this,AutoUpdateService.class);
+            startService(intent);
         }
     }
 
     public void loadBingPic(){
-        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        //此处修改了书上获取图片的url并增加了json解析
+        String requestBingPic = "http://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1";
         HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
-
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                final String bingPic = response.body().string();
+                final String bingJson = response.body().string();
+                BingPic bingPic = Utility.handleBingPicResponse(bingJson);
+                bingPicUrl = "http://cn.bing.com"+bingPic.images.get(0).url;
+                copyRight = bingPic.images.get(0).copyRight;
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                editor.putString("bing_pic",bingPic);
+                editor.putString("bing_pic",bingPicUrl);
+                editor.putString("copyRight",copyRight);
                 editor.apply();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
+                        Glide.with(WeatherActivity.this).load(bingPicUrl).into(bingPicImg);
+                        bingPicCopyRight.setText(copyRight);
                     }
                 });
 

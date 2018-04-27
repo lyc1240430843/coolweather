@@ -18,6 +18,6 @@ public class Weather {
     public Suggestion suggestion;
 
 
-    @SerializedName("daily_forecast") //TODO 这句没懂为啥要加
+    @SerializedName("daily_forecast")
     public List<Forecast> forecastList;
 }

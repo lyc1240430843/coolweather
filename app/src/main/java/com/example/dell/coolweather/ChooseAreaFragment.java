@@ -63,7 +63,7 @@ public class ChooseAreaFragment extends Fragment {
         titleText = (TextView)view.findViewById(R.id.title_text);
         backButton = (Button)view.findViewById(R.id.back_button);
         listView = (ListView)view.findViewById(R.id.list_view);
-        adapter = new ArrayAdapter<String>(getContext(),android.R.layout.simple_list_item_1,dataList);
+        adapter = new ArrayAdapter<String>(getContext(),R.layout.listview_font,dataList);
         listView.setAdapter(adapter);
         return view;
     }
@@ -112,15 +112,15 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     /**
-     * 查询省，优先从数据库查，如果没有再去服务器
+     * 查询省，优先从数据库查，如果没有再去服务器，服务器查找中会进入handle方法给数据库添加值
      */
     private void queryProvinces(){
         titleText.setText("中国");
         //第一个菜单没有返回键所以设置隐藏
         backButton.setVisibility(View.GONE);
-        //TODO 待测试 这里DataSupport为何不能换成Province
+        //这里DataSupport可以换成Province
         //调用LitePal的查询接口从数据库中取值给省列表，用于下面循环给dataList赋值  先记住是固定写法
-        provinceList = DataSupport.findAll(Province.class);
+        provinceList = Province.findAll(Province.class);
         //如果数据库没有就从网上取
         if (provinceList.size()>0){
             dataList.clear();
@@ -140,7 +140,7 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     /**
-     * 查询市，优先从数据库查，如果没有再去服务器
+     * 查询市，优先从数据库查，如果没有再去服务器，服务器查找中会进入handle方法给数据库添加值
      */
 
     private void queryCities(){
@@ -163,7 +163,7 @@ public class ChooseAreaFragment extends Fragment {
     }
 
     /**
-     * 查询县，优先从数据库查，如果没有再去服务器
+     * 查询县，优先从数据库查，如果没有再去服务器，服务器查找中会进入handle方法给数据库添加值
      */
 
     private void queryCountry(){

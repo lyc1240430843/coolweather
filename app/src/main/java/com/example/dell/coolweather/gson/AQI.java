@@ -18,7 +18,6 @@ public class AQI {
     @SerializedName("city")
     public AQICity city;
     public class AQICity{
-        //TODO 跟书上不一样
         @SerializedName("aqi")
         public String aqi;
         @SerializedName("pm25")

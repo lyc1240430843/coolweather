@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import com.example.dell.coolweather.db.City;
 import com.example.dell.coolweather.db.Country;
 import com.example.dell.coolweather.db.Province;
+import com.example.dell.coolweather.gson.BingPic;
 import com.example.dell.coolweather.gson.Weather;
 import com.google.gson.Gson;
 
@@ -92,9 +93,6 @@ public class Utility {
     @Nullable
     public static Weather handleWeatherResponse(String response){
         try {
-            if(response.startsWith("\ufeff")){
-                response = response.substring(1);
-            }
             JSONObject jsonObject = new JSONObject(response);
             JSONArray jsonArray = jsonObject.getJSONArray("HeWeather");
             String weatherContent = jsonArray.getJSONObject(0).toString();
@@ -104,4 +102,10 @@ public class Utility {
         }
         return null;
     }
+
+    @Nullable
+    public static BingPic handleBingPicResponse(String bingJson){
+        return new Gson().fromJson(bingJson,BingPic.class);
+    }
+
 }
